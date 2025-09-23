@@ -1,0 +1,45 @@
+ # docker-compose.yml
+version: '3.8'
+
+services:
+  # 1. Il servizio della API di Sentiment Analysis
+  sentiment_api:
+    build:
+      context: . # Usa la cartella corrente come contesto
+      dockerfile: docker/Dockerfile # Specifica il percorso del Dockerfile
+    container_name: sentiment_api_container
+    ports:
+      - "5000:5000" # Mappa la porta 5000 del tuo PC a quella del container
+    networks:
+      - monitoring-net
+
+  # 2. Il servizio di Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus_container
+    ports:
+      - "9090:9090"
+    volumes:
+      # Monta il file di configurazione dentro il container di Prometheus
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - monitoring-net
+
+  # 3. Il servizio di Grafana
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: grafana_container
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus # Grafana si avvierà solo dopo Prometheus
+    networks:
+      - monitoring-net
+
+# Si definisce la rete che permette ai container di comunicare tra loro
+networks:
+  monitoring-net:
+    driver: bridge
+

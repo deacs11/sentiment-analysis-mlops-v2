@@ -1,0 +1,97 @@
+pipeline {
+    // Uso 'agent any' perché l'istanza di Jenkins (che gira in Docker)
+    // ha già accesso al client e al motore Docker del computer host.
+    agent any
+
+    environment {
+        DOCKER_IMAGE_NAME = 'sentiment-analysis-api'
+        DOCKER_HUB_USERNAME = 'jorio97'
+        DOCKER_CREDENTIALS_ID = 'docker-hub-credentials'
+    }
+
+    stages {
+
+        // Fase 1: Checkout del Codice dal Repository
+        stage('Checkout') {
+            steps {
+                // Questo comando clona o aggiorna il codice dal repository Git
+                // configurato nel job di Jenkins.
+                checkout scm
+                echo "1. Checkout completato."
+            }
+        }
+
+        // Fase 2: Build dell'Immagine Docker
+        stage('Build Docker Image') {
+            steps {
+                echo "2. Costruzione dell'immagine Docker..."
+                // Uso 'sh' perché il container di Jenkins è basato su Linux.
+                // Il comando 'docker' è disponibile grazie al volume mapping nel docker-compose.
+                sh "docker build -t ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER} -f docker/Dockerfile ."
+                echo "Immagine ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER} costruita."
+            }
+        }
+        
+        // Fase 3: Esecuzione degli Unit Test
+        stage('Run Unit Tests') {
+            steps {
+                echo "3. Esecuzione degli Unit Test..."
+                sh "docker run --rm sentiment-analysis-api:${BUILD_NUMBER} sh -c 'PYTHONPATH=. python -m unittest tests/test_model.py'"
+                echo "Unit Test superati."
+            }
+        }
+
+        // Fase 4: Esecuzione degli Integration Test
+        stage('Run Integration Tests') {
+            steps {
+                script {
+                    echo "4. Esecuzione degli Integration Test..."
+                    try {
+                        sh "docker run -d --name test-api-container -p 5000:5000 ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}"
+                        echo "In attesa che l'API si avvii (20 secondi)..."
+                        sleep 20
+                        sh "docker run --rm --network host sentiment-analysis-api:${BUILD_NUMBER} python -m unittest tests/test_api.py"
+                        echo "Integration Test superati."
+                    } finally {
+                        echo "Pulizia del container di test..."
+                        sh "docker stop test-api-container || true"
+                        sh "docker rm test-api-container || true"
+                    }
+                }
+            }
+        }
+        
+        // Fase 5: Push dell'immagine su Docker Hub
+        stage('Push to Docker Hub') {
+            steps {
+                echo "5. Pubblicazione dell'immagine su Docker Hub..."
+                withCredentials([usernamePassword(credentialsId: "${DOCKER_CREDENTIALS_ID}", passwordVariable: 'DOCKER_HUB_PASSWORD', usernameVariable: 'DOCKER_HUB_USERNAME')]) {
+                    sh "docker tag ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER} ${DOCKER_HUB_USERNAME}/${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}"
+                    sh "docker tag ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER} ${DOCKER_HUB_USERNAME}/${DOCKER_IMAGE_NAME}:latest"
+                    
+                    sh "echo ${DOCKER_HUB_PASSWORD} | docker login -u ${DOCKER_HUB_USERNAME} --password-stdin"
+                    
+                    sh "docker push ${DOCKER_HUB_USERNAME}/${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}"
+                    sh "docker push ${DOCKER_HUB_USERNAME}/${DOCKER_IMAGE_NAME}:latest"
+                    echo "Immagine pubblicata con successo."
+                }
+            }
+        }
+    }
+
+    // Azioni da eseguire alla fine della pipeline
+    post {
+        always {
+            echo "Pipeline terminata. Eseguo pulizia."
+            sh "docker logout"
+            // cleanWs() pulisce il workspace di Jenkins per la prossima build.
+            cleanWs()
+        }
+        success {
+            echo "La pipeline è stata completata con successo!"
+        }
+        failure {
+            echo "La pipeline è fallita."
+        }
+    }
+}

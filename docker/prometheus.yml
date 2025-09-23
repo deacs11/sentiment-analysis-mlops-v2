@@ -1,0 +1,10 @@
+# docker/prometheus.yml
+global:
+  scrape_interval: 15s # Frequenza di raccolta delle metriche (ogni 15 secondi)
+
+scrape_configs:
+  - job_name: 'sentiment-api'
+    # Questo dice a Prometheus di cercare un servizio chiamato 'sentiment_api' sulla porta 5000.
+    # Docker Compose si occuperà di far comunicare i container usando i nomi dei servizi.
+    static_configs:
+      - targets: ['sentiment_api:5000']
