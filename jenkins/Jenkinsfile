@@ -1,6 +1,4 @@
 pipeline {
-    // Uso 'agent any' perché l'istanza di Jenkins (che gira in Docker)
-    // ha già accesso al client e al motore Docker del computer host.
     agent any
 
     environment {
@@ -11,22 +9,16 @@ pipeline {
 
     stages {
 
-        // Fase 1: Checkout del Codice dal Repository
         stage('Checkout') {
             steps {
-                // Questo comando clona o aggiorna il codice dal repository Git
-                // configurato nel job di Jenkins.
                 checkout scm
                 echo "1. Checkout completato."
             }
         }
 
-        // Fase 2: Build dell'Immagine Docker
         stage('Build Docker Image') {
             steps {
                 echo "2. Costruzione dell'immagine Docker..."
-                // Uso 'sh' perché il container di Jenkins è basato su Linux.
-                // Il comando 'docker' è disponibile grazie al volume mapping nel docker-compose.
                 sh "docker build -t ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER} -f docker/Dockerfile ."
                 echo "Immagine ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER} costruita."
             }
@@ -36,7 +28,8 @@ pipeline {
         stage('Run Unit Tests') {
             steps {
                 echo "3. Esecuzione degli Unit Test..."
-                sh "docker run --rm sentiment-analysis-api:${BUILD_NUMBER} sh -c 'PYTHONPATH=. python -m unittest tests/test_model.py'"
+                // Usa sh -c e PYTHONPATH per garantire che i moduli siano trovati
+                sh "docker run --rm ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER} sh -c 'PYTHONPATH=. python -m unittest tests/test_model.py'"
                 echo "Unit Test superati."
             }
         }
@@ -50,7 +43,8 @@ pipeline {
                         sh "docker run -d --name test-api-container -p 5000:5000 ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}"
                         echo "In attesa che l'API si avvii (20 secondi)..."
                         sleep 20
-                        sh "docker run --rm --network host sentiment-analysis-api:${BUILD_NUMBER} python -m unittest tests/test_api.py"
+                        // --- MODIFICA CHIAVE: Aggiunto sh -c e PYTHONPATH anche qui ---
+                        sh "docker run --rm --network host ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER} sh -c 'PYTHONPATH=. python -m unittest tests/test_api.py'"
                         echo "Integration Test superati."
                     } finally {
                         echo "Pulizia del container di test..."
@@ -79,12 +73,10 @@ pipeline {
         }
     }
 
-    // Azioni da eseguire alla fine della pipeline
     post {
         always {
             echo "Pipeline terminata. Eseguo pulizia."
             sh "docker logout"
-            // cleanWs() pulisce il workspace di Jenkins per la prossima build.
             cleanWs()
         }
         success {
