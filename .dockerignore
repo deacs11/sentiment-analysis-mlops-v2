@@ -1,0 +1,7 @@
+# .dockerignore
+venv/
+__pycache__/
+*.pyc
+jenkins_home/
+.git/
+.gitignore

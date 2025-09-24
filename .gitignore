@@ -4,4 +4,3 @@ venv/
 # Ignora la cartella dei dati di Jenkins
 jenkins_home/
 
-*.pkl
