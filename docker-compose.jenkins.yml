@@ -13,10 +13,10 @@ services:
       - "8080:8080"
       - "50000:50000"
     volumes:
-      - ./jenkins_home:/var/jenkins_home
+      - jenkins_data:/var/jenkins_home # Questo usa un volume gestito da Docker
       - /var/run/docker.sock:/var/run/docker.sock
     group_add:
       - "docker"
 
 volumes:
-  jenkins_home:
+  jenkins_data:
