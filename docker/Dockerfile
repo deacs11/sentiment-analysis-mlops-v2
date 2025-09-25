@@ -6,10 +6,10 @@ WORKDIR /app
 # così la struttura dei moduli viene mantenuta.
 COPY . .
 
-# Installiamo le dipendenze
+# Installo le dipendenze
 RUN pip install --no-cache-dir -r app/requirements.txt
 
 EXPOSE 5000
 
-# Quando avviamo, ci spostiamo nella cartella dell'app
+# Quando avvio, ci spostiamo nella cartella dell'app
 CMD ["gunicorn", "--chdir", "app", "--bind", "0.0.0.0:5000", "main:app"]

@@ -28,13 +28,11 @@ services:
       - monitoring-net
 
   # 3. Il servizio di Grafana
-    # 3. Il servizio di Grafana
   grafana:
     image: grafana/grafana-oss:latest
     container_name: grafana_container
     ports:
       - "3000:3000"
-    # --- AGGIUNGI QUESTE 4 RIGHE ---
     volumes:
       - ./docker/grafana-datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
       - ./docker/grafana-dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml

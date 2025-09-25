@@ -14,7 +14,7 @@ RUN echo \
 RUN apt-get update && apt-get install -y docker-ce-cli
 
 
-    # 1. Creo il gruppo 'docker' se non esiste. Usiamo un GID fisso (es. 999) per coerenza.
+    # 1. Creo il gruppo 'docker' se non esiste. Uso un GID fisso (es. 999) per coerenza.
 RUN groupadd -g 999 docker
 # Aggiungo l'utente 'jenkins' al gruppo 'docker' per dargli i permessi
 # sul docker.sock montato.

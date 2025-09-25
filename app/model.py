@@ -1,4 +1,4 @@
-# app/model.py - VERSIONE FINALE E ROBUSTA
+# app/model.py
 import pickle
 import os
 import logging
@@ -18,7 +18,6 @@ class SentimentModel:
             logging.error(f"ERRORE CRITICO DURANTE IL CARICAMENTO DEL MODELLO: {e}")
             self.model = None
 
-    # in app/model.py
 
     def predict_sentiment(self, text):
         if self.model is None:
@@ -26,14 +25,14 @@ class SentimentModel:
             return "error", 0.0
 
         try:
-            # Il modello si aspetta una lista e restituisce una lista, quindi prendiamo il primo elemento.
+            # Il modello si aspetta una lista e restituisce una lista, quindi prendo il primo elemento.
             prediction = self.model.predict([text])
             sentiment = prediction[0]
             
             logging.info(f"Output del modello per '{text[:30]}...': [{sentiment}]")
 
-            # Non abbiamo più bisogno di mappatura. Usiamo l'output diretto.
-            # Aggiungiamo una confidenza fittizia come richiesto dal formato della risposta.
+            # Non ho più bisogno di mappatura. Uso l'output diretto.
+            # Aggiungo una confidenza fittizia come richiesto dal formato della risposta.
             confidence = 0.98 
             
             return sentiment, confidence

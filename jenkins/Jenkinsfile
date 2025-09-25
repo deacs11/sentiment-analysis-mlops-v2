@@ -8,14 +8,14 @@ pipeline {
     }
 
     stages {
-
+        // Fase 1: Checkout
         stage('Checkout') {
             steps {
                 checkout scm
                 echo "1. Checkout completato."
             }
         }
-
+        // Fase 2: Build dell'immagine Docker
         stage('Build Docker Image') {
             steps {
                 echo "2. Costruzione dell'immagine Docker..."
@@ -43,7 +43,6 @@ pipeline {
                         sh "docker run -d --name test-api-container -p 5000:5000 ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}"
                         echo "In attesa che l'API si avvii (20 secondi)..."
                         sleep 20
-                        // --- MODIFICA CHIAVE: Aggiunto sh -c e PYTHONPATH anche qui ---
                         sh "docker run --rm --network host ${DOCKER_IMAGE_NAME}:${BUILD_NUMBER} sh -c 'PYTHONPATH=. python -m unittest tests/test_api.py'"
                         echo "Integration Test superati."
                     } finally {
